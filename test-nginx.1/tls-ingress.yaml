@@ -1,0 +1,372 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  namespace: jiesuan
+  labels:
+    run: my-nginx
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+  selector:
+    run: my-nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  namespace: jiesuan
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 443
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx
+          readOnly: true
+        - name: nginx-server-certs
+          mountPath: /etc/nginx-server-certs
+          readOnly: true
+        - name: auth-server-certs
+          mountPath: /etc/auth-server-certs
+          readOnly: true
+        - name: logs
+          mountPath: /logs
+        - name: jiesaun
+          mountPath: /jiesaun
+        - name: yjj
+          mountPath: /yjj
+        - name: auth
+          mountPath: /auth
+      volumes:
+      - name: logs
+        hostPath:
+          path: /tmp/logs/web
+          type: DirectoryOrCreate
+      - name: jiesaun
+        hostPath:
+          path: /tmp/jiesaun
+      - name: yjj
+        hostPath:
+          path: /tmp/yjj
+      - name: auth
+        hostPath:
+          path: /tmp/auth
+      - name: nginx-config
+        configMap:
+          name: nginx-configmap
+      - name: nginx-server-certs
+        secret:
+          secretName: nginx-server-certs
+      - name: auth-server-certs
+        secret:
+          secretName: auth-server-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: noeq
+  namespace: jiesuan
+  labels:
+    app: noeq
+spec:
+  ports:
+  - name: grpc
+    port: 6637
+  
+  selector:
+    app: noeq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: noeqgreet
+  namespace: jiesuan
+  labels:
+    app: noeqgreet
+spec:
+  ports:
+  - name: grpc
+    port: 6638
+  
+  selector:
+    app: noeqgreet
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: noeqserver
+  namespace: jiesuan
+  labels:
+    app: noeqserver
+spec:
+  ports:
+  - name: grpc
+    port: 6638
+  
+  selector:
+    app: noeqserver
+---
+
+---
+# Source: jiesuan/templates/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "noeq-v3-19022400"
+  namespace: jiesuan
+  labels:
+    app: noeq
+    version: v3
+    trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: noeq
+      version: v3
+      trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+  template:
+    metadata:
+      labels:
+        app: noeq
+        version: v3
+        trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+    spec:
+      containers:
+      - name: noeq
+        image: "registry.cn-qingdao.aliyuncs.com/hunder/noeq:v3"
+        imagePullPolicy: IfNotPresent
+        env: 
+        - name: CHART_TRACE
+          value: 450a4eab2f95410b69a91201bad97860bb2724fb
+        args:
+        - bin/server
+        - -log_dir=/logs
+        - -id=1
+        - -addr=noeq:6637
+        - -etcd=172.16.2.154:2479
+        
+        ports:
+        - containerPort: 6637
+        volumeMounts:
+        - name: logs
+          mountPath: /logs
+      volumes:
+      - name: logs
+        hostPath:
+          path: /tmp/logs/noeq
+          type: DirectoryOrCreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "noeqgreet-v3-19022400"
+  namespace: jiesuan
+  labels:
+    app: noeqgreet
+    version: v3
+    trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: noeqgreet
+      version: v3
+      trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+  template:
+    metadata:
+      labels:
+        app: noeqgreet
+        version: v3
+        trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+    spec:
+      containers:
+      - name: noeqgreet
+        image: "registry.cn-qingdao.aliyuncs.com/hunder/noeq:v3"
+        imagePullPolicy: IfNotPresent
+        env: 
+        - name: CHART_TRACE
+          value: 450a4eab2f95410b69a91201bad97860bb2724fb
+        args:
+        - bin/greet
+        - -noeq=noeq:6637
+        - -etcd=172.16.2.154:2479
+        
+        ports:
+        - containerPort: 6638
+        volumeMounts:
+        - name: logs
+          mountPath: /logs
+      volumes:
+      - name: logs
+        hostPath:
+          path: /tmp/logs/noeqgreet
+          type: DirectoryOrCreate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "noeqserver-v3-19022400"
+  namespace: jiesuan
+  labels:
+    app: noeqserver
+    version: v3
+    trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: noeqserver
+      version: v3
+      trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+  template:
+    metadata:
+      labels:
+        app: noeqserver
+        version: v3
+        trace: 450a4eab2f95410b69a91201bad97860bb2724fb
+    spec:
+      containers:
+      - name: noeqserver
+        image: "registry.cn-qingdao.aliyuncs.com/hunder/noeq:v3"
+        imagePullPolicy: IfNotPresent
+        env: 
+        - name: CHART_TRACE
+          value: 450a4eab2f95410b69a91201bad97860bb2724fb
+        args:
+        - bin/webserver
+        - -addr=0.0.0.0:6638
+        - -etcd=172.16.2.154:2479
+        
+        ports:
+        - containerPort: 6638
+        volumeMounts:
+        - name: logs
+          mountPath: /logs
+      volumes:
+      - name: logs
+        hostPath:
+          path: /tmp/logs/noeqserver
+          type: DirectoryOrCreate
+---
+# gateway配置
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: mygateway
+  namespace: jiesuan
+spec:
+  selector:
+    istio: ingressgateway # 使用 istio 默认的 ingress gateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: PASSTHROUGH
+    hosts:
+    - nginx.example.com
+  - port:
+      number: 443
+      name: https-auth
+      protocol: HTTPS
+    tls:
+      mode: PASSTHROUGH
+    hosts:
+    - auth.jiesuan.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: nginx
+  namespace: jiesuan
+spec:
+  hosts:
+  - nginx.example.com
+  gateways:
+  - mygateway
+  tls:
+  - match:
+    - port: 443
+      sni_hosts:
+      - nginx.example.com
+    route:
+    - destination:
+        host: my-nginx
+        port:
+          number: 443
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: auth
+  namespace: jiesuan
+spec:
+  hosts:
+  - auth.jiesuan.local
+  gateways:
+  - mygateway
+  tls:
+  - match:
+    - port: 443
+      sni_hosts:
+      - auth.jiesuan.local
+    route:
+    - destination:
+        host: my-nginx
+        port:
+          number: 443
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: noeq
+  namespace: jiesuan
+spec:
+  hosts:
+  - noeq.jiesuan.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: noeq.jiesuan.svc.cluster.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: noeqserver
+  namespace: jiesuan
+spec:
+  hosts:
+  - noeqserver.jiesuan.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: noeqserver.jiesuan.svc.cluster.local
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: noeqgreet
+  namespace: jiesuan
+spec:
+  hosts:
+  - noeqgreet.jiesuan.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: noeqgreet.jiesuan.svc.cluster.local
